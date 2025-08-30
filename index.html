@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Modern 3D Calculator</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧮</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <div class="calculator">
+            <div class="calculator-header">
+                <button class="history-btn" onclick="toggleHistory()">📋</button>
+                <div class="display">
+                    <div class="expression" id="expression"></div>
+                    <div class="result" id="result">0</div>
+                </div>
+            </div>
+            
+            <div class="keypad">
+                <button class="btn btn-function" onclick="clearAll()">AC</button>
+                <button class="btn btn-function" onclick="deleteLast()">⌫</button>
+                <button class="btn btn-bracket" onclick="addBracket()">( )</button>
+                <button class="btn btn-operator" onclick="addOperator('÷')">÷</button>
+                
+                <button class="btn btn-number" onclick="addNumber('7')">7</button>
+                <button class="btn btn-number" onclick="addNumber('8')">8</button>
+                <button class="btn btn-number" onclick="addNumber('9')">9</button>
+                <button class="btn btn-operator" onclick="addOperator('×')">×</button>
+                
+                <button class="btn btn-number" onclick="addNumber('4')">4</button>
+                <button class="btn btn-number" onclick="addNumber('5')">5</button>
+                <button class="btn btn-number" onclick="addNumber('6')">6</button>
+                <button class="btn btn-operator" onclick="addOperator('-')">-</button>
+                
+                <button class="btn btn-number" onclick="addNumber('1')">1</button>
+                <button class="btn btn-number" onclick="addNumber('2')">2</button>
+                <button class="btn btn-number" onclick="addNumber('3')">3</button>
+                <button class="btn btn-operator" onclick="addOperator('+')">+</button>
+                
+                <button class="btn btn-number btn-zero" onclick="addNumber('0')">0</button>
+                <button class="btn btn-number" onclick="addDecimal()">.</button>
+                <button class="btn btn-equals" onclick="calculate()">=</button>
+            </div>
+        </div>
+        
+        <div class="history-panel" id="historyPanel">
+            <div class="history-header">
+                <h3>History</h3>
+                <button class="clear-history" onclick="clearHistory()">Clear</button>
+            </div>
+            <div class="history-list" id="historyList">
+                <div class="no-history">No calculations yet</div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
