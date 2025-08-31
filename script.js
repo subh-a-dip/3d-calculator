@@ -4,19 +4,70 @@ class Calculator {
         this.result = '0';
         this.history = [];
         this.isHistoryVisible = false;
+        this.isScientificMode = false;
+        this.HISTORY_EXPIRY_DAYS = 2;
         
         this.expressionElement = document.getElementById('expression');
         this.resultElement = document.getElementById('result');
         this.historyPanel = document.getElementById('historyPanel');
         this.historyList = document.getElementById('historyList');
+        this.calculatorElement = document.querySelector('.calculator');
+        this.scBtn = document.getElementById('scBtn');
         
         this.updateDisplay();
         this.loadHistory();
+        this.cleanExpiredHistory();
+        this.initMouseFollow();
+    }
+    
+    toggleScientific() {
+        this.isScientificMode = !this.isScientificMode;
+        const basicKeypad = document.getElementById('basicKeypad');
+        const scientificKeypad = document.getElementById('scientificKeypad');
+        
+        if (this.isScientificMode) {
+            basicKeypad.style.display = 'none';
+            scientificKeypad.style.display = 'grid';
+            this.calculatorElement.classList.add('scientific-mode');
+            this.scBtn.classList.add('active');
+        } else {
+            basicKeypad.style.display = 'grid';
+            scientificKeypad.style.display = 'none';
+            this.calculatorElement.classList.remove('scientific-mode');
+            this.scBtn.classList.remove('active');
+        }
+    }
+    
+    initMouseFollow() {
+        if (window.innerWidth > 768) {
+            document.addEventListener('mousemove', (e) => {
+                const rect = this.calculatorElement.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                const deltaX = (e.clientX - centerX) / 50;
+                const deltaY = (e.clientY - centerY) / 50;
+                
+                this.calculatorElement.classList.add('mouse-follow');
+                this.calculatorElement.style.transform = `
+                    perspective(1200px) 
+                    rotateX(${8 - deltaY}deg) 
+                    rotateY(${-2 + deltaX}deg) 
+                    translateZ(${Math.abs(deltaX) + Math.abs(deltaY)}px)
+                `;
+            });
+            
+            document.addEventListener('mouseleave', () => {
+                this.calculatorElement.classList.remove('mouse-follow');
+                this.calculatorElement.style.transform = '';
+            });
+        }
     }
     
     updateDisplay() {
         this.expressionElement.textContent = this.expression || '';
         this.resultElement.textContent = this.result;
+        animateResult();
     }
     
     addNumber(num) {
@@ -86,6 +137,62 @@ class Calculator {
         this.calculatePreview();
     }
     
+    addFunction(func) {
+        if (this.result === 'Error') {
+            this.clearAll();
+        }
+        
+        const lastChar = this.expression[this.expression.length - 1];
+        const needsMultiply = this.expression !== '' && !['+', '-', '×', '÷', '(', '^'].includes(lastChar);
+        
+        switch(func) {
+            case '√':
+                this.expression += (needsMultiply ? '×√(' : '√(');
+                break;
+            case 'x²':
+                if (needsMultiply) this.expression += '²';
+                break;
+            case 'xʸ':
+                if (needsMultiply) this.expression += '^';
+                break;
+            case '%':
+                if (needsMultiply) this.expression += '%';
+                break;
+            case 'sin':
+                this.expression += (needsMultiply ? '×sin(' : 'sin(');
+                break;
+            case 'cos':
+                this.expression += (needsMultiply ? '×cos(' : 'cos(');
+                break;
+            case 'tan':
+                this.expression += (needsMultiply ? '×tan(' : 'tan(');
+                break;
+            case 'ln':
+                this.expression += (needsMultiply ? '×ln(' : 'ln(');
+                break;
+            case 'log':
+                this.expression += (needsMultiply ? '×log(' : 'log(');
+                break;
+            case 'e':
+                this.expression += (needsMultiply ? '×e' : 'e');
+                break;
+            case 'π':
+                this.expression += (needsMultiply ? '×π' : 'π');
+                break;
+            case '!':
+                if (needsMultiply) this.expression += '!';
+                break;
+            case '1/x':
+                if (this.expression !== '') {
+                    this.expression = '1/(' + this.expression + ')';
+                }
+                break;
+        }
+        
+        this.updateDisplay();
+        this.calculatePreview();
+    }
+    
     deleteLast() {
         if (this.expression.length > 0) {
             this.expression = this.expression.slice(0, -1);
@@ -148,7 +255,23 @@ class Calculator {
         let cleanExpr = expr
             .replace(/×/g, '*')
             .replace(/÷/g, '/')
-            .replace(/[^0-9+\-*/.() ]/g, '');
+            .replace(/√\(/g, 'Math.sqrt(')
+            .replace(/²/g, '**2')
+            .replace(/\^/g, '**')
+            .replace(/%/g, '/100')
+            .replace(/sin\(/g, 'Math.sin(')
+            .replace(/cos\(/g, 'Math.cos(')
+            .replace(/tan\(/g, 'Math.tan(')
+            .replace(/ln\(/g, 'Math.log(')
+            .replace(/log\(/g, 'Math.log10(')
+            .replace(/e/g, 'Math.E')
+            .replace(/π/g, 'Math.PI')
+            .replace(/(\d+)!/g, 'this.factorial($1)');
+        
+        // Handle factorial
+        cleanExpr = cleanExpr.replace(/(\d+)!/g, (match, num) => {
+            return this.factorial(parseInt(num));
+        });
         
         // Validate brackets
         const openCount = (cleanExpr.match(/\(/g) || []).length;
@@ -163,6 +286,16 @@ class Calculator {
         return Function('"use strict"; return (' + cleanExpr + ')')();
     }
     
+    factorial(n) {
+        if (n < 0) return NaN;
+        if (n === 0 || n === 1) return 1;
+        let result = 1;
+        for (let i = 2; i <= n; i++) {
+            result *= i;
+        }
+        return result;
+    }
+    
     formatNumber(num) {
         if (Number.isInteger(num)) {
             return num.toString();
@@ -175,16 +308,27 @@ class Calculator {
         const entry = {
             id: Date.now(),
             calculation: calculation,
-            timestamp: new Date().toLocaleTimeString()
+            timestamp: new Date().toLocaleTimeString(),
+            date: new Date().toISOString(),
+            expires: Date.now() + (this.HISTORY_EXPIRY_DAYS * 24 * 60 * 60 * 1000)
         };
         
         this.history.unshift(entry);
         
-        // Keep only last 20 entries
-        if (this.history.length > 20) {
-            this.history = this.history.slice(0, 20);
+        // Keep only last 50 entries
+        if (this.history.length > 50) {
+            this.history = this.history.slice(0, 50);
         }
         
+        this.saveHistory();
+        this.updateHistoryDisplay();
+    }
+    
+    cleanExpiredHistory() {
+        const now = Date.now();
+        this.history = this.history.filter(entry => {
+            return entry.expires && entry.expires > now;
+        });
         this.saveHistory();
         this.updateHistoryDisplay();
     }
@@ -250,6 +394,62 @@ class Calculator {
 // Initialize calculator
 const calculator = new Calculator();
 
+// Create floating particles
+function createParticles() {
+    const particleContainer = document.createElement('div');
+    particleContainer.className = 'floating-particles';
+    document.body.appendChild(particleContainer);
+    
+    for (let i = 0; i < 20; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.animationDelay = Math.random() * 15 + 's';
+        particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
+        particleContainer.appendChild(particle);
+    }
+}
+
+// Enhanced button click effect
+function addClickEffect(button) {
+    button.addEventListener('click', function(e) {
+        const ripple = document.createElement('span');
+        const rect = button.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        const x = e.clientX - rect.left - size / 2;
+        const y = e.clientY - rect.top - size / 2;
+        
+        ripple.style.cssText = `
+            position: absolute;
+            width: ${size}px;
+            height: ${size}px;
+            left: ${x}px;
+            top: ${y}px;
+            background: radial-gradient(circle, rgba(255,255,255,0.6) 0%, transparent 70%);
+            border-radius: 50%;
+            transform: scale(0);
+            animation: rippleEffect 0.6s ease-out;
+            pointer-events: none;
+        `;
+        
+        button.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 600);
+    });
+}
+
+// Add ripple effect to all buttons
+document.querySelectorAll('.btn').forEach(addClickEffect);
+
+// Enhanced result display animation
+function animateResult() {
+    const resultElement = document.getElementById('result');
+    resultElement.classList.add('updating');
+    setTimeout(() => resultElement.classList.remove('updating'), 300);
+}
+
+// Create particles on load
+createParticles();
+
 // Global functions for HTML onclick events
 function addNumber(num) {
     calculator.addNumber(num);
@@ -287,6 +487,18 @@ function clearHistory() {
     calculator.clearHistory();
 }
 
+function addFunction(func) {
+    calculator.addFunction(func);
+}
+
+function toggleScientific() {
+    calculator.toggleScientific();
+}
+
+function openGithub() {
+    window.open('https://github.com/subh-a-dip/modern-calculator', '_blank');
+}
+
 // Keyboard support
 document.addEventListener('keydown', (event) => {
     const key = event.key;
@@ -316,6 +528,26 @@ document.addEventListener('keydown', (event) => {
         deleteLast();
     } else if (key === 'Escape') {
         clearAll();
+    } else if (key === 's') {
+        addFunction('sin');
+    } else if (key === 'c') {
+        addFunction('cos');
+    } else if (key === 't') {
+        addFunction('tan');
+    } else if (key === 'l') {
+        addFunction('ln');
+    } else if (key === 'p') {
+        addFunction('π');
+    } else if (key === 'e') {
+        addFunction('e');
+    } else if (key === 'r') {
+        addFunction('√');
+    } else if (key === '^') {
+        addFunction('xʸ');
+    } else if (key === '%') {
+        addFunction('%');
+    } else if (key === '!') {
+        addFunction('!');
     }
 });
 
