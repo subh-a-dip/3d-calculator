@@ -180,7 +180,9 @@ class Calculator {
                 this.expression += (needsMultiply ? '×π' : 'π');
                 break;
             case '!':
-                if (needsMultiply) this.expression += '!';
+                if (this.expression !== '' && !isNaN(this.expression[this.expression.length - 1])) {
+                    this.expression += '!';
+                }
                 break;
             case '1/x':
                 if (this.expression !== '') {
@@ -264,13 +266,12 @@ class Calculator {
             .replace(/tan\(/g, 'Math.tan(')
             .replace(/ln\(/g, 'Math.log(')
             .replace(/log\(/g, 'Math.log10(')
-            .replace(/e/g, 'Math.E')
-            .replace(/π/g, 'Math.PI')
-            .replace(/(\d+)!/g, 'this.factorial($1)');
+            .replace(/\be\b/g, 'Math.E')
+            .replace(/π/g, 'Math.PI');
         
-        // Handle factorial
-        cleanExpr = cleanExpr.replace(/(\d+)!/g, (match, num) => {
-            return this.factorial(parseInt(num));
+        // Handle factorial - improved regex to capture numbers before !
+        cleanExpr = cleanExpr.replace(/(\d+(?:\.\d+)?)!/g, (match, num) => {
+            return this.factorial(parseFloat(num));
         });
         
         // Validate brackets
@@ -287,8 +288,12 @@ class Calculator {
     }
     
     factorial(n) {
+        // Convert to integer for factorial calculation
+        n = Math.floor(n);
         if (n < 0) return NaN;
         if (n === 0 || n === 1) return 1;
+        if (n > 170) return Infinity; // Prevent overflow
+        
         let result = 1;
         for (let i = 2; i <= n; i++) {
             result *= i;
