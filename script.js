@@ -268,32 +268,43 @@ class Calculator {
             .replace(/log\(/g, 'Math.log10(')
             .replace(/\be\b/g, 'Math.E')
             .replace(/π/g, 'Math.PI');
-        
-        // Handle factorial - improved regex to capture numbers before !
-        cleanExpr = cleanExpr.replace(/(\d+(?:\.\d+)?)!/g, (match, num) => {
-            return this.factorial(parseFloat(num));
+
+        // Handle factorial for numbers and expressions (e.g., (2+3)!)
+        cleanExpr = cleanExpr.replace(/(\([^()]+\)|\d+(?:\.\d+)?)!/g, (match, exprOrNum) => {
+            let value;
+            try {
+                // Evaluate the expression inside parentheses or parse number
+                value = exprOrNum.startsWith('(') ? Function('"use strict"; return ' + exprOrNum.slice(1, -1))() : parseFloat(exprOrNum);
+            } catch {
+                return 'NaN';
+            }
+            return this.factorial(value);
         });
-        
+
         // Validate brackets
         const openCount = (cleanExpr.match(/\(/g) || []).length;
         const closeCount = (cleanExpr.match(/\)/g) || []).length;
-        
+
         // Auto-close brackets if needed
         if (openCount > closeCount) {
             cleanExpr += ')'.repeat(openCount - closeCount);
         }
-        
+
         // Use Function constructor for safe evaluation
-        return Function('"use strict"; return (' + cleanExpr + ')')();
+        let result = Function('"use strict"; return (' + cleanExpr + ')')();
+        // Handle invalid ln and factorial results
+        if (isNaN(result) || result === Infinity || result === -Infinity) {
+            return 'Error';
+        }
+        return result;
     }
     
     factorial(n) {
         // Convert to integer for factorial calculation
-        n = Math.floor(n);
-        if (n < 0) return NaN;
+        // Only allow non-negative integers
+        if (typeof n !== 'number' || !isFinite(n) || n < 0 || Math.floor(n) !== n) return NaN;
         if (n === 0 || n === 1) return 1;
         if (n > 170) return Infinity; // Prevent overflow
-        
         let result = 1;
         for (let i = 2; i <= n; i++) {
             result *= i;
