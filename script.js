@@ -1,3 +1,14 @@
+// Instantiate calculator globally
+const calculator = new Calculator();
+
+// Global functions for HTML button actions
+function addNumber(num) { calculator.addNumber(num); }
+function addOperator(op) { calculator.addOperator(op); }
+function addDecimal() { calculator.addDecimal(); }
+function addBracket() { calculator.addBracket(); }
+function calculate() { calculator.calculate(); }
+function deleteLast() { calculator.deleteLast(); }
+function clearAll() { calculator.clearAll(); }
 class Calculator {
     constructor() {
         this.expression = '';
@@ -407,8 +418,6 @@ class Calculator {
     }
 }
 
-// Initialize calculator
-const calculator = new Calculator();
 
 // Create floating particles
 function createParticles() {
