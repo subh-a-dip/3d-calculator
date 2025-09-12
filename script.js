@@ -9,6 +9,11 @@ function addBracket() { calculator.addBracket(); }
 function calculate() { calculator.calculate(); }
 function deleteLast() { calculator.deleteLast(); }
 function clearAll() { calculator.clearAll(); }
+function addFunction(func) { calculator.addFunction(func); }
+function toggleScientific() { calculator.toggleScientific(); }
+function toggleHistory() { calculator.toggleHistory(); }
+function openGithub() { window.open('https://github.com/subh-a-dip/3d-calculator', '_blank'); }
+function clearHistory() { calculator.clearHistory(); }
 class Calculator {
     constructor() {
         this.expression = '';
@@ -275,13 +280,11 @@ class Calculator {
             .replace(/sin\(/g, 'Math.sin(')
             .replace(/cos\(/g, 'Math.cos(')
             .replace(/tan\(/g, 'Math.tan(')
-            .replace(/ln\(/g, 'Math.log(')
-            .replace(/log\(/g, 'Math.log10(')
             .replace(/\be\b/g, 'Math.E')
             .replace(/π/g, 'Math.PI');
 
-        // Handle factorial for numbers and expressions (e.g., (2+3)!)
-        cleanExpr = cleanExpr.replace(/(\([^()]+\)|\d+(?:\.\d+)?)!/g, (match, exprOrNum) => {
+        // Handle factorial for numbers and nested expressions (e.g., ((2+3)*2)!)
+        cleanExpr = cleanExpr.replace(/((?:\([^()]*\)|\d+(?:\.\d+)?)+)!/g, (match, exprOrNum) => {
             let value;
             try {
                 // Evaluate the expression inside parentheses or parse number
@@ -291,6 +294,11 @@ class Calculator {
             }
             return this.factorial(value);
         });
+
+        // Now handle ln and log after factorials are replaced
+        cleanExpr = cleanExpr
+            .replace(/ln\(/g, 'Math.log(')
+            .replace(/log\(/g, 'Math.log10(');
 
         // Validate brackets
         const openCount = (cleanExpr.match(/\(/g) || []).length;
